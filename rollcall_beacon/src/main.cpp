@@ -1,28 +1,58 @@
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEAdvertising.h>
+#include <BLEUtils.h>
 #include <WiFi.h>
 #include <stdint.h>
 #include "time.h"
-#include "passwords.h"
+#include "config.h"
 #include "logger.h"
 #include "totp.h"
+
+// Configuration
+#define SERVICE_UUID "12345678-1234-1234-1234-123456789abc"
+static const uint8_t BEACON_ID[4] = { 0xA3, 0xF9, 0x00, 0x01 };
+
 
 #define wifiLED 2
 bool wifiOn = true;
 uint32_t prevTotp = 0;
 struct tm timeinfo;
+BLEAdvertising* pAdvertising;
+
+std::string buildManufacturerData(uint32_t totp) {
+  std::string data;
+  data += (char)0xFF;
+  data += (char)0xFF;
+
+  for (int i = 0; i < 4; i++)
+    data += (char)BEACON_ID[i];
+
+  data += (char)((totp >> 24) & 0xFF);
+  data += (char)((totp >> 16) & 0xFF);
+  data += (char)((totp >>  8) & 0xFF);
+  data += (char)((totp      ) & 0xFF);
+
+  return data;
+}
 
 void setup() {
   Serial.begin(115200);
   pinMode(wifiLED,OUTPUT);
-  LOG_I("BEACON", "RollCall Beacon starting");
+  LOG_I("BEACON", "RollCall Beacon Initializng");
+  LOG_I("INFO","Initilazing BLE");
 
-  Serial.print("[INFO ] [WIFI] Connecting to ");
-  Serial.println(ssid);
+  BLEDevice::init("RollCall Bluetooth LE Beacon");
+  pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x00);
+
+  LOG_I("WIFI", "Connecting to WiFi");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println();
   LOG_I("WIFI", "Connected");
   digitalWrite(wifiLED, HIGH);
 
@@ -39,10 +69,12 @@ void loop() {
   }
 
   if (wifiOn) {
-    LOG_I("WIFI", "Time synced — disconnecting WiFi");
+    LOG_I("WIFI", "Time synced Successfully. Turning off WiFi");
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
+    delay(2000);
     wifiOn = false;
+    LOG_I("WIFI", "Wifi Turned Off Successfully");
   }
 
   uint32_t code = get_current_totp(secret);
@@ -54,7 +86,15 @@ void loop() {
     LOG_I("TOTP", "TOTP Changed");
     LOG_I("TIME", timestamp);
     LOG_I("TOTP",code);
+
+    BLEAdvertisementData advData;
+    advData.setCompleteServices(BLEUUID(SERVICE_UUID));
+    advData.setManufacturerData(buildManufacturerData(code));
+    BLEDevice::stopAdvertising();
+    pAdvertising->setAdvertisementData(advData);
+    BLEDevice::startAdvertising();
+    LOG_I("BLE","Broadcasting new TOTP");
   }
 
-  delay(30000);
+  delay(totpRefreshInterval * 1000);
 }

@@ -4,6 +4,7 @@
 #include <time.h>
 #include <ctype.h>
 #include "mbedtls/md.h"
+#include "config.h"
 
 static const char BASE32_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -65,5 +66,5 @@ uint32_t get_current_totp(const char *base32_secret) {
     time_t now;
     time(&now);
 
-    return totp_generate(secret_bytes, secret_len, (uint64_t)now / 30);
+    return totp_generate(secret_bytes, secret_len, (uint64_t)now / totpRefreshInterval);
 }
