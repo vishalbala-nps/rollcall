@@ -9,11 +9,7 @@
 #include "logger.h"
 #include "totp.h"
 
-// Configuration
 #define SERVICE_UUID "12345678-1234-1234-1234-123456789abc"
-static const uint8_t BEACON_ID[4] = { 0xA3, 0xF9, 0x00, 0x01 };
-
-
 #define wifiLED 2
 bool wifiOn = true;
 uint32_t prevTotp = 0;
@@ -25,7 +21,7 @@ std::string buildManufacturerData(uint32_t totp) {
   data += (char)0xFF;
   data += (char)0xFF;
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 2; i++)
     data += (char)BEACON_ID[i];
 
   data += (char)((totp >> 24) & 0xFF);
