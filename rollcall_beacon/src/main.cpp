@@ -15,6 +15,7 @@
 
 #define SERVICE_UUID "12345678-1234-1234-1234-123456789abc"
 #define wifiLED 2
+#define resetButton 0
 
 // Runtime config — populated from /config.json at boot
 
@@ -90,6 +91,7 @@ std::string buildManufacturerData(uint32_t totp) {
 void setup() {
   Serial.begin(115200);
   pinMode(wifiLED, OUTPUT);
+  pinMode(resetButton, INPUT_PULLUP);
   LOG_I("BEACON", "RollCall Beacon Initializing");
   LittleFS.begin(true);
 
@@ -168,7 +170,7 @@ void setup() {
 
 void checkResetButton() {
   static unsigned long pressStart = 0;
-  if (digitalRead(0) == LOW) {
+  if (digitalRead(resetButton) == LOW) {
     if (pressStart == 0) pressStart = millis();
     if (millis() - pressStart >= 5000) {
       LOG_I("RESET", "Boot button held 5s — resetting config");
@@ -223,6 +225,13 @@ void loop() {
       }
     }
   } else {
+    static unsigned long lastBlink = 0;
+    static bool ledState = false;
+    if (millis() - lastBlink >= 500) {
+      lastBlink = millis();
+      ledState = !ledState;
+      digitalWrite(wifiLED, ledState);
+    }
     server.handleClient();
   }
 }
