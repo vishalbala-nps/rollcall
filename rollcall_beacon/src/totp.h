@@ -66,5 +66,5 @@ uint32_t get_current_totp(const char *base32_secret) {
     time_t now;
     time(&now);
 
-    return totp_generate(secret_bytes, secret_len, (uint64_t)now / totpRefreshInterval);
+    return totp_generate(secret_bytes, secret_len, (uint64_t)now / cfg_totpRefreshInterval);
 }
