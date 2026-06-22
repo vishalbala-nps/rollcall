@@ -27,6 +27,7 @@ struct tm timeinfo;
 BLEAdvertising* pAdvertising;
 
 void resetAndRestart() {
+  digitalWrite(wifiLED, LOW);
   LOG_E("CONFIG", "Resetting config and restarting...");
   LittleFS.format();
   delay(500);
@@ -159,14 +160,28 @@ void setup() {
     }
     Serial.println();
     LOG_I("WIFI", "Connected");
-    digitalWrite(wifiLED, HIGH);
 
     LOG_I("NTP", "Syncing time NTP Server");
     configTime(0, 0, "time.nist.gov");
   }
 }
 
+void checkResetButton() {
+  static unsigned long pressStart = 0;
+  if (digitalRead(0) == LOW) {
+    if (pressStart == 0) pressStart = millis();
+    if (millis() - pressStart >= 5000) {
+      LOG_I("RESET", "Boot button held 5s — resetting config");
+      resetAndRestart();
+    }
+  } else {
+    pressStart = 0;
+  }
+}
+
 void loop() {
+  checkResetButton();
+
   if (!inProvisioning) {
     if (!getLocalTime(&timeinfo)) {
       digitalWrite(wifiLED, LOW);
@@ -184,26 +199,29 @@ void loop() {
       LOG_I("WIFI", "WiFi Turned Off Successfully");
     }
 
-    uint32_t code = get_current_totp(cfg_secret.c_str());
-    if (code != prevTotp) {
-      digitalWrite(wifiLED, HIGH);
-      prevTotp = code;
-      char timestamp[64];
-      strftime(timestamp, sizeof(timestamp), "%A, %B %d %Y %H:%M:%S", &timeinfo);
-      LOG_I("TOTP", "TOTP Changed");
-      LOG_I("TIME", timestamp);
-      LOG_I("TOTP", code);
+    static unsigned long lastTotpCheck = 0;
+    if (millis() - lastTotpCheck >= 1000) {
+      lastTotpCheck = millis();
 
-      BLEAdvertisementData advData;
-      advData.setCompleteServices(BLEUUID(SERVICE_UUID));
-      advData.setManufacturerData(buildManufacturerData(code));
-      BLEDevice::stopAdvertising();
-      pAdvertising->setAdvertisementData(advData);
-      BLEDevice::startAdvertising();
-      LOG_I("BLE", "Broadcasting new TOTP");
+      uint32_t code = get_current_totp(cfg_secret.c_str());
+      if (code != prevTotp) {
+        digitalWrite(wifiLED, HIGH);
+        prevTotp = code;
+        char timestamp[64];
+        strftime(timestamp, sizeof(timestamp), "%A, %B %d %Y %H:%M:%S", &timeinfo);
+        LOG_I("TOTP", "TOTP Changed");
+        LOG_I("TIME", timestamp);
+        LOG_I("TOTP", code);
+
+        BLEAdvertisementData advData;
+        advData.setCompleteServices(BLEUUID(SERVICE_UUID));
+        advData.setManufacturerData(buildManufacturerData(code));
+        BLEDevice::stopAdvertising();
+        pAdvertising->setAdvertisementData(advData);
+        BLEDevice::startAdvertising();
+        LOG_I("BLE", "Broadcasting new TOTP");
+      }
     }
-
-    delay(cfg_totpRefreshInterval * 1000);
   } else {
     server.handleClient();
   }
