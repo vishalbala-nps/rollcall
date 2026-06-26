@@ -22,6 +22,8 @@ model University {
   id        Int      @id @default(autoincrement())
   name      String
   users     User[]
+  courses   Course[]
+  rooms     Room[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -35,6 +37,30 @@ model User {
   role         Role
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   universityId Int
+  courses      Course[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Course {
+  id           Int        @id @default(autoincrement())
+  name         String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  universityId Int
+  faculty      User       @relation(fields: [facultyId], references: [id])
+  facultyId    Int
+  room         Room?      @relation(fields: [roomId], references: [id])
+  roomId       Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Room {
+  id           Int        @id @default(autoincrement())
+  name         String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  universityId Int
+  courses      Course[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
