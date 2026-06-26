@@ -58,6 +58,58 @@ export async function addBeacon(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
+export async function addRoom(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const name = (formData.get("name") as string).trim()
+  if (!name) return { error: "Room name is required." }
+  try {
+    await db.room.create({ data: { name, universityId } })
+  } catch {
+    return { error: "Failed to create room. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
+export async function deleteRoom(formData: FormData) {
+  const session = await auth()
+  const id = Number(formData.get("id"))
+  await db.room.deleteMany({ where: { id, universityId: session!.user.universityId } })
+  revalidatePath("/admin", "layout")
+}
+
+export async function addCourse(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const name = (formData.get("name") as string).trim()
+  const facultyId = Number(formData.get("facultyId"))
+  const roomIdRaw = formData.get("roomId") as string
+  const roomId = roomIdRaw ? Number(roomIdRaw) : null
+  if (!name) return { error: "Course name is required." }
+  if (!facultyId) return { error: "Please select a faculty member." }
+  try {
+    await db.course.create({
+      data: { name, universityId, facultyId, roomId },
+    })
+  } catch {
+    return { error: "Failed to create course. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
+export async function deleteCourse(formData: FormData) {
+  const session = await auth()
+  const id = Number(formData.get("id"))
+  await db.course.deleteMany({ where: { id, universityId: session!.user.universityId } })
+  revalidatePath("/admin", "layout")
+}
+
 export async function signOutAction() {
   await signOut({ redirectTo: "/" })
 }

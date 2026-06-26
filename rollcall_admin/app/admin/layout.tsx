@@ -1,5 +1,5 @@
 import { auth } from "@/auth"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AdminSidebar } from "./admin-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
 export default async function AdminLayout({
@@ -11,7 +11,7 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar email={session?.user?.email} />
+      <AdminSidebar email={session?.user?.email} />
       <SidebarInset>
         <div className="p-6">{children}</div>
       </SidebarInset>

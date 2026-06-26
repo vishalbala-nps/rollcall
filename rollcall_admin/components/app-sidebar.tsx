@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { GraduationCap, LayoutDashboard, Users, Radio, LogOut, ChevronsUpDown } from "lucide-react"
+import { type LucideIcon, GraduationCap, LogOut, ChevronsUpDown } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -22,21 +22,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { signOutAction } from "@/app/admin/actions"
 
-const nav = [
-  { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { title: "Users", href: "/admin/users", icon: Users },
-  { title: "Beacons", href: "/admin/beacons", icon: Radio },
-]
+export type NavItem = {
+  title: string
+  href: string
+  icon: LucideIcon
+  exact?: boolean
+}
 
-export function AppSidebar({ email }: { email?: string | null }) {
+type AppSidebarProps = {
+  nav: NavItem[]
+  email?: string | null
+  onSignOut: () => Promise<void>
+}
+
+export function AppSidebar({ nav, email, onSignOut }: AppSidebarProps) {
   const pathname = usePathname()
 
-  const isActive = (href: string) =>
-    href === "/admin"
-      ? pathname === "/admin" || pathname === "/"
-      : pathname.startsWith(href)
+  const isActive = (item: NavItem) =>
+    item.exact
+      ? pathname === item.href || pathname === "/"
+      : pathname.startsWith(item.href)
 
   return (
     <Sidebar collapsible="none">
@@ -58,7 +64,7 @@ export function AppSidebar({ email }: { email?: string | null }) {
             <SidebarMenu>
               {nav.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                  <SidebarMenuButton asChild isActive={isActive(item)}>
                     <Link href={item.href}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -88,7 +94,7 @@ export function AppSidebar({ email }: { email?: string | null }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <form action={signOutAction} className="w-full">
+              <form action={onSignOut} className="w-full">
                 <button type="submit" className="flex w-full items-center gap-2 text-destructive">
                   <LogOut className="size-4" />
                   Sign out
