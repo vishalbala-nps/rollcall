@@ -128,6 +128,48 @@ export async function deleteCourse(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
+export async function addBatch(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const name = (formData.get("name") as string).trim()
+  const studentIds = formData.getAll("studentIds").map(Number)
+  if (!name) return { error: "Batch name is required." }
+  try {
+    const batch = await db.batch.create({ data: { name } })
+    if (studentIds.length > 0) {
+      await db.user.updateMany({ where: { id: { in: studentIds } }, data: { batchId: batch.id } })
+    }
+  } catch {
+    return { error: "Failed to create batch. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
+export async function deleteBatch(formData: FormData) {
+  const id = Number(formData.get("id"))
+  await db.user.updateMany({ where: { batchId: id }, data: { batchId: null } })
+  await db.batch.delete({ where: { id } })
+  revalidatePath("/admin", "layout")
+}
+
+export async function setBatchStudents(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const batchId = Number(formData.get("batchId"))
+  const studentIds = formData.getAll("studentIds").map(Number)
+  try {
+    await db.user.updateMany({ where: { batchId }, data: { batchId: null } })
+    if (studentIds.length > 0) {
+      await db.user.updateMany({ where: { id: { in: studentIds } }, data: { batchId } })
+    }
+  } catch {
+    return { error: "Failed to update students. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
 export async function signOutAction() {
   await signOut({ redirectTo: "/" })
 }
