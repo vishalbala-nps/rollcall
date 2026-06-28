@@ -52,9 +52,27 @@ export async function deleteUser(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
-export async function addBeacon(formData: FormData) {
+export async function addBeacon(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const name = (formData.get("name") as string).trim()
   const secret = (formData.get("secret") as string).trim()
-  await db.beacon.create({ data: { secret } })
+  const roomIdRaw = formData.get("roomId") as string
+  const roomId = roomIdRaw ? Number(roomIdRaw) : null
+  if (!name) return { error: "Name is required." }
+  if (!secret) return { error: "Secret is required." }
+  try {
+    await db.beacon.create({ data: { name, secret, roomId } })
+  } catch {
+    return { error: "Failed to add beacon. The secret may already be in use." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
+export async function deleteBeacon(formData: FormData) {
+  const id = Number(formData.get("id"))
+  await db.beacon.delete({ where: { id } })
   revalidatePath("/admin", "layout")
 }
 

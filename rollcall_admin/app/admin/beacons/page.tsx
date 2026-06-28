@@ -1,70 +1,22 @@
+import { auth } from "@/auth"
 import { db } from "@/lib/db"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { addBeacon } from "../actions"
+import { BeaconsClient } from "./components/beacons-client"
 
 export default async function BeaconsPage() {
-  const beacons = await db.beacon.findMany({ orderBy: { createdAt: "asc" } })
+  const session = await auth()
+  const universityId = session!.user.universityId
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Beacons</h1>
-        <p className="text-sm text-muted-foreground">
-          Register attendance beacons for your campus
-        </p>
-      </div>
+  const [beacons, rooms] = await Promise.all([
+    db.beacon.findMany({
+      orderBy: { createdAt: "asc" },
+      include: { room: { select: { id: true, name: true } } },
+    }),
+    db.room.findMany({
+      where: { universityId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ])
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Add Beacon</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={addBeacon} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="secret">Secret</Label>
-              <Input id="secret" name="secret" placeholder="Paste the beacon secret" required />
-            </div>
-            <Button type="submit">Add Beacon</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>Secret</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {beacons.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={2} className="text-center text-muted-foreground">
-                  No beacons yet.
-                </TableCell>
-              </TableRow>
-            )}
-            {beacons.map((b) => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.id}</TableCell>
-                <TableCell className="font-mono text-sm">{b.secret}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  )
+  return <BeaconsClient beacons={beacons} rooms={rooms} />
 }

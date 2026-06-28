@@ -38,6 +38,7 @@ type Room = {
   id: number
   name: string
   courses: { id: number; name: string }[]
+  beacons: { id: number; name: string }[]
 }
 
 function AddRoomDialog() {
@@ -96,14 +97,15 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
             <TableRow>
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Courses assigned</TableHead>
+              <TableHead>Courses</TableHead>
+              <TableHead>Beacons</TableHead>
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {rooms.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   No rooms yet.
                 </TableCell>
               </TableRow>
@@ -118,6 +120,15 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
                     : <div className="flex flex-wrap gap-1">
                         {r.courses.map((c) => (
                           <Badge key={c.id} variant="secondary">{c.name}</Badge>
+                        ))}
+                      </div>}
+                </TableCell>
+                <TableCell>
+                  {r.beacons.length === 0
+                    ? <span className="text-sm italic text-muted-foreground">None</span>
+                    : <div className="flex flex-wrap gap-1">
+                        {r.beacons.map((b) => (
+                          <Badge key={b.id} variant="outline">{b.name}</Badge>
                         ))}
                       </div>}
                 </TableCell>

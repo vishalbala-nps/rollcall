@@ -9,7 +9,10 @@ export default async function RoomsPage() {
   const rooms = await db.room.findMany({
     where: { universityId },
     orderBy: { createdAt: "asc" },
-    include: { courses: { select: { id: true, name: true } } },
+    include: {
+      courses: { select: { id: true, name: true } },
+      beacons: { select: { id: true, name: true } },
+    },
   })
 
   return <RoomsClient rooms={rooms} />
