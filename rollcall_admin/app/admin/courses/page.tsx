@@ -6,13 +6,14 @@ export default async function CoursesPage() {
   const session = await auth()
   const universityId = session!.user.universityId
 
-  const [courses, faculty, rooms] = await Promise.all([
+  const [courses, faculty, rooms, batches] = await Promise.all([
     db.course.findMany({
       where: { universityId },
       orderBy: { createdAt: "asc" },
       include: {
         faculty: { select: { id: true, firstName: true, lastName: true } },
-        room: { select: { id: true, name: true } },
+        room:    { select: { id: true, name: true } },
+        batches: { select: { id: true, name: true } },
       },
     }),
     db.user.findMany({
@@ -25,7 +26,12 @@ export default async function CoursesPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    db.batch.findMany({
+      where: { universityId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ])
 
-  return <CoursesClient courses={courses} faculty={faculty} rooms={rooms} />
+  return <CoursesClient courses={courses} faculty={faculty} rooms={rooms} batches={batches} />
 }

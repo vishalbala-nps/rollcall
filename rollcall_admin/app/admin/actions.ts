@@ -113,11 +113,18 @@ export async function addCourse(
   const facultyId = Number(formData.get("facultyId"))
   const roomIdRaw = formData.get("roomId") as string
   const roomId = roomIdRaw ? Number(roomIdRaw) : null
+  const batchIds = formData.getAll("batchIds").map(Number)
   if (!name) return { error: "Course name is required." }
   if (!facultyId) return { error: "Please select a faculty member." }
   try {
     await db.course.create({
-      data: { name, universityId, facultyId, roomId },
+      data: {
+        name,
+        universityId,
+        facultyId,
+        roomId,
+        batches: batchIds.length > 0 ? { connect: batchIds.map((id) => ({ id })) } : undefined,
+      },
     })
   } catch {
     return { error: "Failed to create course. Please try again." }

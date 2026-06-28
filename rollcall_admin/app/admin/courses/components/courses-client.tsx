@@ -4,6 +4,7 @@ import { useState, useActionState, useEffect, useRef } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import {
   Select,
   SelectContent,
@@ -42,17 +43,68 @@ import { addCourse, deleteCourse } from "@/app/admin/actions"
 
 type Faculty = { id: number; firstName: string; lastName: string | null }
 type Room = { id: number; name: string }
+type Batch = { id: number; name: string }
 type Course = {
   id: number
   name: string
   faculty: Faculty
   room: Room | null
+  batches: Batch[]
 }
 
-function AddCourseDialog({ faculty, rooms }: { faculty: Faculty[]; rooms: Room[] }) {
+function BatchPicker({
+  batches,
+  selected,
+  onToggle,
+}: {
+  batches: Batch[]
+  selected: Set<number>
+  onToggle: (id: number) => void
+}) {
+  if (batches.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground rounded-md border px-3 py-2">
+        No batches created yet.
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-0.5 max-h-36 overflow-y-auto rounded-md border p-1">
+      {batches.map((b) => (
+        <label
+          key={b.id}
+          className="flex items-center gap-3 rounded px-2 py-1.5 cursor-pointer hover:bg-muted"
+        >
+          <input
+            type="checkbox"
+            className="size-4 rounded accent-primary cursor-pointer"
+            checked={selected.has(b.id)}
+            onChange={() => onToggle(b.id)}
+          />
+          <span className="text-sm">{b.name}</span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function AddCourseDialog({
+  faculty,
+  rooms,
+  batches,
+}: {
+  faculty: Faculty[]
+  rooms: Room[]
+  batches: Batch[]
+}) {
   const [open, setOpen] = useState(false)
+  const [selectedBatches, setSelectedBatches] = useState<Set<number>>(new Set())
   const [state, action, pending] = useActionState(addCourse, undefined)
   const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (open) setSelectedBatches(new Set())
+  }, [open])
 
   useEffect(() => {
     if (pending) { wasSubmitting.current = true; return }
@@ -61,6 +113,14 @@ function AddCourseDialog({ faculty, rooms }: { faculty: Faculty[]; rooms: Room[]
       if (!state?.error) setOpen(false)
     }
   }, [state, pending])
+
+  function toggle(id: number) {
+    setSelectedBatches((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -75,6 +135,9 @@ function AddCourseDialog({ faculty, rooms }: { faculty: Faculty[]; rooms: Room[]
           <DialogTitle>Add Course</DialogTitle>
         </DialogHeader>
         <form action={action} className="flex flex-col gap-4">
+          {Array.from(selectedBatches).map((id) => (
+            <input key={id} type="hidden" name="batchIds" value={String(id)} />
+          ))}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="name">Course name</Label>
             <Input id="name" name="name" required />
@@ -109,6 +172,10 @@ function AddCourseDialog({ faculty, rooms }: { faculty: Faculty[]; rooms: Room[]
               </SelectContent>
             </Select>
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Batches ({selectedBatches.size} selected)</Label>
+            <BatchPicker batches={batches} selected={selectedBatches} onToggle={toggle} />
+          </div>
           {state?.error && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
@@ -125,10 +192,12 @@ export function CoursesClient({
   courses,
   faculty,
   rooms,
+  batches,
 }: {
   courses: Course[]
   faculty: Faculty[]
   rooms: Room[]
+  batches: Batch[]
 }) {
   return (
     <div className="space-y-6">
@@ -138,7 +207,7 @@ export function CoursesClient({
       </div>
 
       <div className="flex justify-end">
-        <AddCourseDialog faculty={faculty} rooms={rooms} />
+        <AddCourseDialog faculty={faculty} rooms={rooms} batches={batches} />
       </div>
 
       <div className="rounded-lg border">
@@ -149,13 +218,14 @@ export function CoursesClient({
               <TableHead>Name</TableHead>
               <TableHead>Faculty</TableHead>
               <TableHead>Room</TableHead>
+              <TableHead>Batches</TableHead>
               <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {courses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No courses yet.
                 </TableCell>
               </TableRow>
@@ -169,6 +239,17 @@ export function CoursesClient({
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {c.room?.name ?? <span className="italic">Unassigned</span>}
+                </TableCell>
+                <TableCell>
+                  {c.batches.length === 0 ? (
+                    <span className="text-sm italic text-muted-foreground">None</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {c.batches.map((b) => (
+                        <Badge key={b.id} variant="secondary">{b.name}</Badge>
+                      ))}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <AlertDialog>
