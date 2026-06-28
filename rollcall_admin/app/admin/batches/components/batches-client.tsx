@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect } from "react"
+import { useState, useActionState, useEffect, useRef } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -121,14 +121,18 @@ function AddBatchDialog({ students }: { students: Student[] }) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [state, action, pending] = useActionState(addBatch, undefined)
+  const wasSubmitting = useRef(false)
 
   useEffect(() => {
     if (open) setSelected(new Set())
   }, [open])
 
   useEffect(() => {
-    if (!pending && state === undefined) return
-    if (!state?.error) setOpen(false)
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
   }, [state, pending])
 
   function toggle(id: number) {
@@ -179,14 +183,18 @@ function ManageStudentsDialog({ batch, allStudents }: { batch: Batch; allStudent
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [state, action, pending] = useActionState(setBatchStudents, undefined)
+  const wasSubmitting = useRef(false)
 
   useEffect(() => {
     if (open) setSelected(new Set(batch.students.map((s) => s.id)))
   }, [open, batch.students])
 
   useEffect(() => {
-    if (!pending && state === undefined) return
-    if (!state?.error) setOpen(false)
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
   }, [state, pending])
 
   function toggle(id: number) {

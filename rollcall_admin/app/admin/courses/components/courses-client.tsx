@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect } from "react"
+import { useState, useActionState, useEffect, useRef } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -52,10 +52,14 @@ type Course = {
 function AddCourseDialog({ faculty, rooms }: { faculty: Faculty[]; rooms: Room[] }) {
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(addCourse, undefined)
+  const wasSubmitting = useRef(false)
 
   useEffect(() => {
-    if (!pending && state === undefined) return
-    if (!state?.error) setOpen(false)
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
   }, [state, pending])
 
   return (

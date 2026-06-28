@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect } from "react"
+import { useState, useActionState, useEffect, useRef } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -136,10 +136,14 @@ function UserTable({
 function AddUserDialog({ role }: { role: string }) {
   const [open, setOpen] = useState(false)
   const [state, action, pending] = useActionState(addUser, undefined)
+  const wasSubmitting = useRef(false)
 
   useEffect(() => {
-    if (state === undefined && pending === false) return
-    if (!state?.error) setOpen(false)
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
   }, [state, pending])
 
   return (
