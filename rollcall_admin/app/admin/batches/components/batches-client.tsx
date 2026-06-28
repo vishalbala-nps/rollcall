@@ -107,7 +107,7 @@ function StudentPicker({
                 <span className="text-xs text-muted-foreground truncate">{s.email}</span>
               </div>
               {s.batchId !== null && s.batchId !== currentBatchId && (
-                <span className="text-xs text-muted-foreground italic shrink-0">other batch</span>
+                <span className="text-xs text-muted-foreground italic shrink-0">already in another batch</span>
               )}
             </label>
           ))

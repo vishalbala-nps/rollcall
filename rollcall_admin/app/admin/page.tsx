@@ -12,7 +12,7 @@ export default async function AdminDashboard() {
     db.user.count({ where: { universityId, role: "Admin" } }),
     db.user.count({ where: { universityId, role: "Faculty" } }),
     db.user.count({ where: { universityId, role: "Student" } }),
-    db.beacon.count(),
+    db.beacon.count({ where: { universityId } }),
     db.university.findUnique({ where: { id: universityId } }),
   ])
 

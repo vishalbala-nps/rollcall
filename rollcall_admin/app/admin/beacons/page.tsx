@@ -8,6 +8,7 @@ export default async function BeaconsPage() {
 
   const [beacons, rooms] = await Promise.all([
     db.beacon.findMany({
+      where: { universityId },
       orderBy: { createdAt: "asc" },
       include: { room: { select: { id: true, name: true } } },
     }),

@@ -8,10 +8,10 @@ export default async function BatchesPage() {
 
   const [batches, students] = await Promise.all([
     db.batch.findMany({
+      where: { universityId },
       orderBy: { createdAt: "asc" },
       include: {
         students: {
-          where: { universityId },
           select: { id: true, firstName: true, lastName: true },
         },
       },

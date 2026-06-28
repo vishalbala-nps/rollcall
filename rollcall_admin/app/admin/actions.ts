@@ -56,6 +56,8 @@ export async function addBeacon(
   _: unknown,
   formData: FormData
 ): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
   const name = (formData.get("name") as string).trim()
   const secret = (formData.get("secret") as string).trim()
   const roomIdRaw = formData.get("roomId") as string
@@ -63,7 +65,7 @@ export async function addBeacon(
   if (!name) return { error: "Name is required." }
   if (!secret) return { error: "Secret is required." }
   try {
-    await db.beacon.create({ data: { name, secret, roomId } })
+    await db.beacon.create({ data: { name, secret, universityId, roomId } })
   } catch {
     return { error: "Failed to add beacon. The secret may already be in use." }
   }
@@ -71,8 +73,10 @@ export async function addBeacon(
 }
 
 export async function deleteBeacon(formData: FormData) {
+  const session = await auth()
+  const universityId = session!.user.universityId
   const id = Number(formData.get("id"))
-  await db.beacon.delete({ where: { id } })
+  await db.beacon.deleteMany({ where: { id, universityId } })
   revalidatePath("/admin", "layout")
 }
 
@@ -132,11 +136,13 @@ export async function addBatch(
   _: unknown,
   formData: FormData
 ): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
   const name = (formData.get("name") as string).trim()
   const studentIds = formData.getAll("studentIds").map(Number)
   if (!name) return { error: "Batch name is required." }
   try {
-    const batch = await db.batch.create({ data: { name } })
+    const batch = await db.batch.create({ data: { name, universityId } })
     if (studentIds.length > 0) {
       await db.user.updateMany({ where: { id: { in: studentIds } }, data: { batchId: batch.id } })
     }
@@ -147,9 +153,11 @@ export async function addBatch(
 }
 
 export async function deleteBatch(formData: FormData) {
+  const session = await auth()
+  const universityId = session!.user.universityId
   const id = Number(formData.get("id"))
   await db.user.updateMany({ where: { batchId: id }, data: { batchId: null } })
-  await db.batch.delete({ where: { id } })
+  await db.batch.deleteMany({ where: { id, universityId } })
   revalidatePath("/admin", "layout")
 }
 

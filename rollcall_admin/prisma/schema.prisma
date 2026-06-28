@@ -24,6 +24,8 @@ model University {
   users     User[]
   courses   Course[]
   rooms     Room[]
+  batches   Batch[]
+  beacons   Beacon[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -47,6 +49,8 @@ model User {
 model Batch {
   id           Int        @id @default(autoincrement())
   name         String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  universityId Int
   students     User[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -77,11 +81,13 @@ model Room {
 }
 
 model Beacon {
-  id        Int      @id @default(autoincrement())
-  name      String
-  secret    String
-  room      Room?    @relation(fields: [roomId], references: [id])
-  roomId    Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int        @id @default(autoincrement())
+  name         String
+  secret       String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  universityId Int
+  room         Room?      @relation(fields: [roomId], references: [id])
+  roomId       Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
