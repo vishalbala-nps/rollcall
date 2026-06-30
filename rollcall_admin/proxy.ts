@@ -8,8 +8,8 @@ export const proxy = auth((req) => {
 
   if (nextUrl.pathname === "/") {
     if (!isLoggedIn) return NextResponse.next()
-    if (role === "Admin") return NextResponse.rewrite(new URL("/admin", nextUrl))
-    if (role === "Faculty") return NextResponse.rewrite(new URL("/teacher", nextUrl))
+    if (role === "Admin") return NextResponse.redirect(new URL("/admin", nextUrl))
+    if (role === "Faculty") return NextResponse.redirect(new URL("/teacher", nextUrl))
     return NextResponse.next()
   }
 

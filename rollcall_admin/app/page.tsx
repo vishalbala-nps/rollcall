@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button"
 import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { redirect } from "next/navigation"
+import { db } from "@/lib/db"
 
 async function login(formData: FormData) {
   "use server"
+  const email = (formData.get("email") as string).trim()
+  const user = await db.user.findUnique({ where: { email }, select: { role: true } })
+  if (user?.role === "Student") return redirect("/?error=student")
   try {
     await signIn("credentials", {
-      email: formData.get("email"),
+      email,
       password: formData.get("password"),
       redirect: false,
     })
@@ -18,7 +22,11 @@ async function login(formData: FormData) {
     if (e instanceof AuthError) return redirect("/?error=invalid")
     throw e
   }
-  redirect("/")
+  if (user?.role === "Admin") {
+    redirect("/admin")
+  } else {
+    redirect("/teacher")
+  }
 }
 
 export default async function LoginPage({
@@ -47,6 +55,9 @@ export default async function LoginPage({
             </div>
             {error === "invalid" && (
               <p className="text-sm text-destructive">Invalid email or password.</p>
+            )}
+            {error === "student" && (
+              <p className="text-sm text-destructive">Student accounts cannot access the admin panel.</p>
             )}
             <Button type="submit" className="mt-1 w-full">
               Sign in
