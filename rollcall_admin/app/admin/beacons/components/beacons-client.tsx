@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect, useRef } from "react"
+import React, { useState, useActionState, useEffect, useRef } from "react"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,7 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Pencil, RefreshCw, Trash2 } from "lucide-react"
+import { Plus, Pencil, RefreshCw, Trash2, Download } from "lucide-react"
 import { addBeacon, deleteBeacon, updateBeacon } from "@/app/admin/actions"
 
 type Beacon = {
@@ -65,6 +65,79 @@ function generateSecret(): string {
     }
   }
   return result
+}
+
+function ProvisioningDialog({ beacon }: { beacon: Beacon }) {
+  const [open, setOpen] = useState(false)
+  const [ssid, setSsid] = useState("")
+  const [wifiPassword, setWifiPassword] = useState("")
+
+  useEffect(() => {
+    if (open) { setSsid(""); setWifiPassword("") }
+  }, [open])
+
+  function handleDownload(e: React.FormEvent) {
+    e.preventDefault()
+    const json = {
+      ssid,
+      password: wifiPassword,
+      secret: beacon.secret,
+      beaconId: beacon.id.toString(16).toUpperCase(),
+      totpRefreshInterval: 30,
+    }
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `beacon-${beacon.id.toString(16).toUpperCase()}-provisioning.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" title="Download provisioning JSON">
+          <Download className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Download Provisioning JSON</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleDownload} className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            Enter the Wi-Fi credentials the beacon will use to connect.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="prov-ssid">Wi-Fi SSID</Label>
+            <Input
+              id="prov-ssid"
+              value={ssid}
+              onChange={(e) => setSsid(e.target.value)}
+              placeholder="e.g. Airtel_Bala"
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="prov-password">Wi-Fi Password</Label>
+            <Input
+              id="prov-password"
+              type="password"
+              value={wifiPassword}
+              onChange={(e) => setWifiPassword(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit">
+            <Download className="size-4" />
+            Download JSON
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function EditBeaconDialog({ beacon, rooms }: { beacon: Beacon; rooms: Room[] }) {
@@ -277,6 +350,7 @@ export function BeaconsClient({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    <ProvisioningDialog beacon={b} />
                     <EditBeaconDialog beacon={b} rooms={rooms} />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
