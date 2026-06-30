@@ -63,8 +63,6 @@ model Course {
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   universityId Int
   faculties    User[]
-  room         Room?      @relation(fields: [roomId], references: [id])
-  roomId       Int?
   batches      Batch[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -75,7 +73,6 @@ model Room {
   name         String
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   universityId Int
-  courses      Course[]
   beacons      Beacon[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt

@@ -111,8 +111,6 @@ export async function addCourse(
   const universityId = session!.user.universityId
   const name = (formData.get("name") as string).trim()
   const facultyIds = formData.getAll("facultyIds").map(Number)
-  const roomIdRaw = formData.get("roomId") as string
-  const roomId = roomIdRaw ? Number(roomIdRaw) : null
   const batchIds = formData.getAll("batchIds").map(Number)
   if (!name) return { error: "Course name is required." }
   if (facultyIds.length === 0) return { error: "Please select at least one faculty member." }
@@ -121,7 +119,6 @@ export async function addCourse(
       data: {
         name,
         universityId,
-        roomId,
         faculties: { connect: facultyIds.map((id) => ({ id })) },
         batches: batchIds.length > 0 ? { connect: batchIds.map((id) => ({ id })) } : undefined,
       },

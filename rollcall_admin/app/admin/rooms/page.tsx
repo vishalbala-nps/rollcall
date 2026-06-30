@@ -10,7 +10,6 @@ export default async function RoomsPage() {
     where: { universityId },
     orderBy: { createdAt: "asc" },
     include: {
-      courses: { select: { id: true, name: true } },
       beacons: { select: { id: true, name: true } },
     },
   })

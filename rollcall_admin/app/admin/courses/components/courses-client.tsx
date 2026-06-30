@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -42,13 +35,11 @@ import { Plus, Search, Trash2 } from "lucide-react"
 import { addCourse, deleteCourse } from "@/app/admin/actions"
 
 type Faculty = { id: number; firstName: string; lastName: string | null; email: string }
-type Room = { id: number; name: string }
 type Batch = { id: number; name: string }
 type Course = {
   id: number
   name: string
   faculties: Faculty[]
-  room: Room | null
   batches: Batch[]
 }
 
@@ -157,11 +148,9 @@ function BatchPicker({
 
 function AddCourseDialog({
   faculty,
-  rooms,
   batches,
 }: {
   faculty: Faculty[]
-  rooms: Room[]
   batches: Batch[]
 }) {
   const [open, setOpen] = useState(false)
@@ -229,21 +218,6 @@ function AddCourseDialog({
             <FacultyPicker faculty={faculty} selected={selectedFaculty} onToggle={toggleFaculty} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="roomId">Room (optional)</Label>
-            <Select name="roomId">
-              <SelectTrigger id="roomId">
-                <SelectValue placeholder="No room assigned" />
-              </SelectTrigger>
-              <SelectContent>
-                {rooms.map((r) => (
-                  <SelectItem key={r.id} value={String(r.id)}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-1.5">
             <Label>Batches ({selectedBatches.size} selected)</Label>
             <BatchPicker batches={batches} selected={selectedBatches} onToggle={toggleBatch} />
           </div>
@@ -262,12 +236,10 @@ function AddCourseDialog({
 export function CoursesClient({
   courses,
   faculty,
-  rooms,
   batches,
 }: {
   courses: Course[]
   faculty: Faculty[]
-  rooms: Room[]
   batches: Batch[]
 }) {
   return (
@@ -278,7 +250,7 @@ export function CoursesClient({
       </div>
 
       <div className="flex justify-end">
-        <AddCourseDialog faculty={faculty} rooms={rooms} batches={batches} />
+        <AddCourseDialog faculty={faculty} batches={batches} />
       </div>
 
       <div className="rounded-lg border">
@@ -288,7 +260,6 @@ export function CoursesClient({
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Faculty</TableHead>
-              <TableHead>Room</TableHead>
               <TableHead>Batches</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -317,9 +288,6 @@ export function CoursesClient({
                       ))}
                     </div>
                   )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {c.room?.name ?? <span className="italic">Unassigned</span>}
                 </TableCell>
                 <TableCell>
                   {c.batches.length === 0 ? (

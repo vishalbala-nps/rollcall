@@ -37,7 +37,6 @@ import { addRoom, deleteRoom } from "@/app/admin/actions"
 type Room = {
   id: number
   name: string
-  courses: { id: number; name: string }[]
   beacons: { id: number; name: string }[]
 }
 
@@ -101,7 +100,6 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
             <TableRow>
               <TableHead className="w-16">ID</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Courses</TableHead>
               <TableHead>Beacons</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -109,7 +107,7 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
           <TableBody>
             {rooms.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   No rooms yet.
                 </TableCell>
               </TableRow>
@@ -118,15 +116,6 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
               <TableRow key={r.id}>
                 <TableCell className="font-mono text-sm text-muted-foreground">{r.id}</TableCell>
                 <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell>
-                  {r.courses.length === 0
-                    ? <span className="text-sm italic text-muted-foreground">None</span>
-                    : <div className="flex flex-wrap gap-1">
-                        {r.courses.map((c) => (
-                          <Badge key={c.id} variant="secondary">{c.name}</Badge>
-                        ))}
-                      </div>}
-                </TableCell>
                 <TableCell>
                   {r.beacons.length === 0
                     ? <span className="text-sm italic text-muted-foreground">None</span>
@@ -147,7 +136,7 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete room?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete &quot;{r.name}&quot;. Courses in this room will have their room unset.
+                          This will permanently delete &quot;{r.name}&quot;. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
