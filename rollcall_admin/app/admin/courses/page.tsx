@@ -11,15 +11,15 @@ export default async function CoursesPage() {
       where: { universityId },
       orderBy: { createdAt: "asc" },
       include: {
-        faculty: { select: { id: true, firstName: true, lastName: true } },
-        room:    { select: { id: true, name: true } },
-        batches: { select: { id: true, name: true } },
+        faculties: { select: { id: true, firstName: true, lastName: true, email: true } },
+        room:      { select: { id: true, name: true } },
+        batches:   { select: { id: true, name: true } },
       },
     }),
     db.user.findMany({
       where: { universityId, role: "Faculty" },
       orderBy: { firstName: "asc" },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, email: true },
     }),
     db.room.findMany({
       where: { universityId },

@@ -38,18 +38,85 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Search, Trash2 } from "lucide-react"
 import { addCourse, deleteCourse } from "@/app/admin/actions"
 
-type Faculty = { id: number; firstName: string; lastName: string | null }
+type Faculty = { id: number; firstName: string; lastName: string | null; email: string }
 type Room = { id: number; name: string }
 type Batch = { id: number; name: string }
 type Course = {
   id: number
   name: string
-  faculty: Faculty
+  faculties: Faculty[]
   room: Room | null
   batches: Batch[]
+}
+
+function FacultyPicker({
+  faculty,
+  selected,
+  onToggle,
+}: {
+  faculty: Faculty[]
+  selected: Set<number>
+  onToggle: (id: number) => void
+}) {
+  const [query, setQuery] = useState("")
+
+  const filtered = query.trim()
+    ? faculty.filter((f) => {
+        const q = query.toLowerCase()
+        return (
+          f.firstName.toLowerCase().includes(q) ||
+          (f.lastName ?? "").toLowerCase().includes(q) ||
+          f.email.toLowerCase().includes(q)
+        )
+      })
+    : faculty
+
+  if (faculty.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground rounded-md border px-3 py-2">
+        No faculty members yet.
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by name…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="pl-8"
+        />
+      </div>
+      <div className="flex flex-col gap-0.5 max-h-44 overflow-y-auto rounded-md border p-1">
+        {filtered.length === 0 ? (
+          <p className="text-sm text-muted-foreground px-2 py-3 text-center">No matches.</p>
+        ) : (
+          filtered.map((f) => (
+            <label
+              key={f.id}
+              className="flex items-center gap-3 rounded px-2 py-1.5 cursor-pointer hover:bg-muted"
+            >
+              <input
+                type="checkbox"
+                className="size-4 rounded accent-primary cursor-pointer"
+                checked={selected.has(f.id)}
+                onChange={() => onToggle(f.id)}
+              />
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm truncate">{f.firstName} {f.lastName ?? ""}</span>
+                <span className="text-xs text-muted-foreground truncate">{f.email}</span>
+              </div>
+            </label>
+          ))
+        )}
+      </div>
+    </div>
+  )
 }
 
 function BatchPicker({
@@ -98,12 +165,16 @@ function AddCourseDialog({
   batches: Batch[]
 }) {
   const [open, setOpen] = useState(false)
+  const [selectedFaculty, setSelectedFaculty] = useState<Set<number>>(new Set())
   const [selectedBatches, setSelectedBatches] = useState<Set<number>>(new Set())
   const [state, action, pending] = useActionState(addCourse, undefined)
   const wasSubmitting = useRef(false)
 
   useEffect(() => {
-    if (open) setSelectedBatches(new Set())
+    if (open) {
+      setSelectedFaculty(new Set())
+      setSelectedBatches(new Set())
+    }
   }, [open])
 
   useEffect(() => {
@@ -114,7 +185,15 @@ function AddCourseDialog({
     }
   }, [state, pending])
 
-  function toggle(id: number) {
+  function toggleFaculty(id: number) {
+    setSelectedFaculty((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleBatch(id: number) {
     setSelectedBatches((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
@@ -135,6 +214,9 @@ function AddCourseDialog({
           <DialogTitle>Add Course</DialogTitle>
         </DialogHeader>
         <form action={action} className="flex flex-col gap-4">
+          {Array.from(selectedFaculty).map((id) => (
+            <input key={id} type="hidden" name="facultyIds" value={String(id)} />
+          ))}
           {Array.from(selectedBatches).map((id) => (
             <input key={id} type="hidden" name="batchIds" value={String(id)} />
           ))}
@@ -143,19 +225,8 @@ function AddCourseDialog({
             <Input id="name" name="name" required />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="facultyId">Faculty</Label>
-            <Select name="facultyId" required>
-              <SelectTrigger id="facultyId">
-                <SelectValue placeholder="Select a teacher" />
-              </SelectTrigger>
-              <SelectContent>
-                {faculty.map((f) => (
-                  <SelectItem key={f.id} value={String(f.id)}>
-                    {f.firstName} {f.lastName ?? ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Faculty ({selectedFaculty.size} selected)</Label>
+            <FacultyPicker faculty={faculty} selected={selectedFaculty} onToggle={toggleFaculty} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="roomId">Room (optional)</Label>
@@ -174,7 +245,7 @@ function AddCourseDialog({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Batches ({selectedBatches.size} selected)</Label>
-            <BatchPicker batches={batches} selected={selectedBatches} onToggle={toggle} />
+            <BatchPicker batches={batches} selected={selectedBatches} onToggle={toggleBatch} />
           </div>
           {state?.error && (
             <p className="text-sm text-destructive">{state.error}</p>
@@ -234,8 +305,18 @@ export function CoursesClient({
               <TableRow key={c.id}>
                 <TableCell className="font-mono text-sm text-muted-foreground">{c.id}</TableCell>
                 <TableCell className="font-medium">{c.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {c.faculty.firstName} {c.faculty.lastName ?? ""}
+                <TableCell>
+                  {c.faculties.length === 0 ? (
+                    <span className="text-sm italic text-muted-foreground">None</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {c.faculties.map((f) => (
+                        <Badge key={f.id} variant="secondary">
+                          {f.firstName} {f.lastName ?? ""}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {c.room?.name ?? <span className="italic">Unassigned</span>}
@@ -246,7 +327,7 @@ export function CoursesClient({
                   ) : (
                     <div className="flex flex-wrap gap-1">
                       {c.batches.map((b) => (
-                        <Badge key={b.id} variant="secondary">{b.name}</Badge>
+                        <Badge key={b.id} variant="outline">{b.name}</Badge>
                       ))}
                     </div>
                   )}

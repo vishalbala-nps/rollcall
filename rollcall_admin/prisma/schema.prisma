@@ -62,8 +62,7 @@ model Course {
   name         String
   university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
   universityId Int
-  faculty      User       @relation(fields: [facultyId], references: [id])
-  facultyId    Int
+  faculties    User[]
   room         Room?      @relation(fields: [roomId], references: [id])
   roomId       Int?
   batches      Batch[]
