@@ -31,13 +31,55 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2 } from "lucide-react"
-import { addRoom, deleteRoom } from "@/app/admin/actions"
+import { Plus, Pencil, Trash2 } from "lucide-react"
+import { addRoom, deleteRoom, updateRoom } from "@/app/admin/actions"
 
 type Room = {
   id: number
   name: string
   beacons: { id: number; name: string }[]
+}
+
+function EditRoomDialog({ room }: { room: Room }) {
+  const [open, setOpen] = useState(false)
+  const [state, action, pending] = useActionState(updateRoom, undefined)
+  const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
+  }, [state, pending])
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Pencil className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Edit Room</DialogTitle>
+        </DialogHeader>
+        <form action={action} className="flex flex-col gap-4">
+          <input type="hidden" name="id" value={String(room.id)} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-name">Room name</Label>
+            <Input id="edit-name" name="name" defaultValue={room.name} required />
+          </div>
+          {state?.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save Changes"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function AddRoomDialog() {
@@ -126,34 +168,37 @@ export function RoomsClient({ rooms }: { rooms: Room[] }) {
                       </div>}
                 </TableCell>
                 <TableCell>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete room?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete &quot;{r.name}&quot;. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className={buttonVariants({ variant: "destructive" })}
-                          onClick={async () => {
-                            const fd = new FormData()
-                            fd.set("id", String(r.id))
-                            await deleteRoom(fd)
-                          }}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center gap-1">
+                    <EditRoomDialog room={r} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete room?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete &quot;{r.name}&quot;. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className={buttonVariants({ variant: "destructive" })}
+                            onClick={async () => {
+                              const fd = new FormData()
+                              fd.set("id", String(r.id))
+                              await deleteRoom(fd)
+                            }}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

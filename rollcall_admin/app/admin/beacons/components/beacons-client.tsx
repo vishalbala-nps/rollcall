@@ -37,8 +37,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, RefreshCw, Trash2 } from "lucide-react"
-import { addBeacon, deleteBeacon } from "@/app/admin/actions"
+import { Plus, Pencil, RefreshCw, Trash2 } from "lucide-react"
+import { addBeacon, deleteBeacon, updateBeacon } from "@/app/admin/actions"
 
 type Beacon = {
   id: number
@@ -65,6 +65,85 @@ function generateSecret(): string {
     }
   }
   return result
+}
+
+function EditBeaconDialog({ beacon, rooms }: { beacon: Beacon; rooms: Room[] }) {
+  const [open, setOpen] = useState(false)
+  const [secret, setSecret] = useState(beacon.secret)
+  const [state, action, pending] = useActionState(updateBeacon, undefined)
+  const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (open) setSecret(beacon.secret)
+  }, [open, beacon.secret])
+
+  useEffect(() => {
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
+  }, [state, pending])
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Pencil className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Beacon</DialogTitle>
+        </DialogHeader>
+        <form action={action} className="flex flex-col gap-4">
+          <input type="hidden" name="id" value={String(beacon.id)} />
+          <input type="hidden" name="secret" value={secret} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-beacon-name">Name</Label>
+            <Input id="edit-beacon-name" name="name" defaultValue={beacon.name} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Secret</Label>
+            <div className="flex gap-2">
+              <Input value={secret} readOnly className="font-mono" />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setSecret(generateSecret())}
+                title="Regenerate secret"
+              >
+                <RefreshCw className="size-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-beacon-room">Room (optional)</Label>
+            <Select name="roomId" defaultValue={beacon.room ? String(beacon.room.id) : ""}>
+              <SelectTrigger id="edit-beacon-room">
+                <SelectValue placeholder="No room assigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No room assigned</SelectItem>
+                {rooms.map((r) => (
+                  <SelectItem key={r.id} value={String(r.id)}>
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {state?.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save Changes"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function AddBeaconDialog({ rooms }: { rooms: Room[] }) {
@@ -197,34 +276,37 @@ export function BeaconsClient({
                   {b.room?.name ?? <span className="italic">Unassigned</span>}
                 </TableCell>
                 <TableCell>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete beacon?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete &quot;{b.name}&quot;. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className={buttonVariants({ variant: "destructive" })}
-                          onClick={async () => {
-                            const fd = new FormData()
-                            fd.set("id", String(b.id))
-                            await deleteBeacon(fd)
-                          }}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <div className="flex items-center gap-1">
+                    <EditBeaconDialog beacon={b} rooms={rooms} />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete beacon?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete &quot;{b.name}&quot;. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className={buttonVariants({ variant: "destructive" })}
+                            onClick={async () => {
+                              const fd = new FormData()
+                              fd.set("id", String(b.id))
+                              await deleteBeacon(fd)
+                            }}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

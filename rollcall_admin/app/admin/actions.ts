@@ -52,6 +52,29 @@ export async function deleteUser(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
+export async function updateUser(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const id = Number(formData.get("id"))
+  const email = (formData.get("email") as string).trim()
+  const firstName = (formData.get("firstName") as string).trim()
+  const lastName = (formData.get("lastName") as string).trim() || null
+  const role = formData.get("role") as "Admin" | "Faculty" | "Student"
+  if (!firstName) return { error: "First name is required." }
+  if (!email) return { error: "Email is required." }
+  const existing = await db.user.findUnique({ where: { email } })
+  if (existing && existing.id !== id) return { error: "This email is already in use." }
+  try {
+    await db.user.updateMany({ where: { id, universityId }, data: { email, firstName, lastName, role } })
+  } catch {
+    return { error: "Failed to update user. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
 export async function addBeacon(
   _: unknown,
   formData: FormData
@@ -80,6 +103,27 @@ export async function deleteBeacon(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
+export async function updateBeacon(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const id = Number(formData.get("id"))
+  const name = (formData.get("name") as string).trim()
+  const secret = (formData.get("secret") as string).trim()
+  const roomIdRaw = formData.get("roomId") as string
+  const roomId = roomIdRaw ? Number(roomIdRaw) : null
+  if (!name) return { error: "Name is required." }
+  if (!secret) return { error: "Secret is required." }
+  try {
+    await db.beacon.updateMany({ where: { id, universityId }, data: { name, secret, roomId } })
+  } catch {
+    return { error: "Failed to update beacon. The secret may already be in use." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
 export async function addRoom(
   _: unknown,
   formData: FormData
@@ -100,6 +144,23 @@ export async function deleteRoom(formData: FormData) {
   const session = await auth()
   const id = Number(formData.get("id"))
   await db.room.deleteMany({ where: { id, universityId: session!.user.universityId } })
+  revalidatePath("/admin", "layout")
+}
+
+export async function updateRoom(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const id = Number(formData.get("id"))
+  const name = (formData.get("name") as string).trim()
+  if (!name) return { error: "Room name is required." }
+  try {
+    await db.room.updateMany({ where: { id, universityId }, data: { name } })
+  } catch {
+    return { error: "Failed to update room. Please try again." }
+  }
   revalidatePath("/admin", "layout")
 }
 
@@ -136,6 +197,35 @@ export async function deleteCourse(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
+export async function updateCourse(
+  _: unknown,
+  formData: FormData
+): Promise<{ error: string } | undefined> {
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const id = Number(formData.get("id"))
+  const name = (formData.get("name") as string).trim()
+  const facultyIds = formData.getAll("facultyIds").map(Number)
+  const batchIds = formData.getAll("batchIds").map(Number)
+  if (!name) return { error: "Course name is required." }
+  if (facultyIds.length === 0) return { error: "Please select at least one faculty member." }
+  const owned = await db.course.findFirst({ where: { id, universityId } })
+  if (!owned) return { error: "Course not found." }
+  try {
+    await db.course.update({
+      where: { id },
+      data: {
+        name,
+        faculties: { set: facultyIds.map((fid) => ({ id: fid })) },
+        batches: { set: batchIds.map((bid) => ({ id: bid })) },
+      },
+    })
+  } catch {
+    return { error: "Failed to update course. Please try again." }
+  }
+  revalidatePath("/admin", "layout")
+}
+
 export async function addBatch(
   _: unknown,
   formData: FormData
@@ -165,19 +255,24 @@ export async function deleteBatch(formData: FormData) {
   revalidatePath("/admin", "layout")
 }
 
-export async function setBatchStudents(
+export async function updateBatch(
   _: unknown,
   formData: FormData
 ): Promise<{ error: string } | undefined> {
-  const batchId = Number(formData.get("batchId"))
+  const session = await auth()
+  const universityId = session!.user.universityId
+  const id = Number(formData.get("id"))
+  const name = (formData.get("name") as string).trim()
   const studentIds = formData.getAll("studentIds").map(Number)
+  if (!name) return { error: "Batch name is required." }
   try {
-    await db.user.updateMany({ where: { batchId }, data: { batchId: null } })
+    await db.batch.updateMany({ where: { id, universityId }, data: { name } })
+    await db.user.updateMany({ where: { batchId: id }, data: { batchId: null } })
     if (studentIds.length > 0) {
-      await db.user.updateMany({ where: { id: { in: studentIds } }, data: { batchId } })
+      await db.user.updateMany({ where: { id: { in: studentIds } }, data: { batchId: id } })
     }
   } catch {
-    return { error: "Failed to update students. Please try again." }
+    return { error: "Failed to update batch. Please try again." }
   }
   revalidatePath("/admin", "layout")
 }

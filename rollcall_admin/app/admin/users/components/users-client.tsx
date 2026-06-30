@@ -32,8 +32,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { buttonVariants } from "@/components/ui/button"
-import { Trash2, Plus } from "lucide-react"
-import { addUser, deleteUser } from "@/app/admin/actions"
+import { Trash2, Plus, Pencil } from "lucide-react"
+import { addUser, deleteUser, updateUser } from "@/app/admin/actions"
 
 type User = {
   id: number
@@ -89,40 +89,43 @@ function UserTable({
                 </TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>
-                  {!isSelf && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete user?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete {u.firstName} {u.lastName ?? ""}. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className={buttonVariants({ variant: "destructive" })}
-                            onClick={async () => {
-                              const fd = new FormData()
-                              fd.set("id", String(u.id))
-                              await deleteUser(fd)
-                            }}
+                  <div className="flex items-center gap-1">
+                    <EditUserDialog user={u} />
+                    {!isSelf && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-destructive"
                           >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete user?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete {u.firstName} {u.lastName ?? ""}. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className={buttonVariants({ variant: "destructive" })}
+                              onClick={async () => {
+                                const fd = new FormData()
+                                fd.set("id", String(u.id))
+                                await deleteUser(fd)
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )
@@ -130,6 +133,59 @@ function UserTable({
         </TableBody>
       </Table>
     </div>
+  )
+}
+
+function EditUserDialog({ user }: { user: User }) {
+  const [open, setOpen] = useState(false)
+  const [state, action, pending] = useActionState(updateUser, undefined)
+  const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
+  }, [state, pending])
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Pencil className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+        </DialogHeader>
+        <form action={action} className="grid gap-4">
+          <input type="hidden" name="id" value={String(user.id)} />
+          <input type="hidden" name="role" value={user.role} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-firstName">First name</Label>
+              <Input id="edit-firstName" name="firstName" defaultValue={user.firstName} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-lastName">Last name</Label>
+              <Input id="edit-lastName" name="lastName" defaultValue={user.lastName ?? ""} />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-email">Email</Label>
+            <Input id="edit-email" name="email" type="email" defaultValue={user.email} required />
+          </div>
+          {state?.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+          <Button type="submit" disabled={pending} className="mt-1">
+            {pending ? "Saving…" : "Save Changes"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

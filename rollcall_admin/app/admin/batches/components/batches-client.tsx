@@ -31,8 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2, Users } from "lucide-react"
-import { addBatch, deleteBatch, setBatchStudents } from "@/app/admin/actions"
+import { Plus, Pencil, Search, Trash2 } from "lucide-react"
+import { addBatch, deleteBatch, updateBatch } from "@/app/admin/actions"
 
 type Student = {
   id: number
@@ -179,10 +179,10 @@ function AddBatchDialog({ students }: { students: Student[] }) {
   )
 }
 
-function ManageStudentsDialog({ batch, allStudents }: { batch: Batch; allStudents: Student[] }) {
+function EditBatchDialog({ batch, allStudents }: { batch: Batch; allStudents: Student[] }) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [state, action, pending] = useActionState(setBatchStudents, undefined)
+  const [state, action, pending] = useActionState(updateBatch, undefined)
   const wasSubmitting = useRef(false)
 
   useEffect(() => {
@@ -209,20 +209,24 @@ function ManageStudentsDialog({ batch, allStudents }: { batch: Batch; allStudent
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <Users className="size-4" />
+          <Pencil className="size-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Students — {batch.name}</DialogTitle>
+          <DialogTitle>Edit Batch</DialogTitle>
         </DialogHeader>
         <form action={action} className="flex flex-col gap-4">
-          <input type="hidden" name="batchId" value={String(batch.id)} />
+          <input type="hidden" name="id" value={String(batch.id)} />
           {Array.from(selected).map((id) => (
             <input key={id} type="hidden" name="studentIds" value={String(id)} />
           ))}
           <div className="flex flex-col gap-1.5">
-            <Label>{selected.size} selected</Label>
+            <Label htmlFor="edit-batch-name">Batch name</Label>
+            <Input id="edit-batch-name" name="name" defaultValue={batch.name} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Students ({selected.size} selected)</Label>
             <StudentPicker
               students={allStudents}
               selected={selected}
@@ -234,7 +238,7 @@ function ManageStudentsDialog({ batch, allStudents }: { batch: Batch; allStudent
             <p className="text-sm text-destructive">{state.error}</p>
           )}
           <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : `Save (${selected.size} selected)`}
+            {pending ? "Saving…" : "Save Changes"}
           </Button>
         </form>
       </DialogContent>
@@ -287,7 +291,7 @@ export function BatchesClient({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
-                    <ManageStudentsDialog batch={b} allStudents={students} />
+                    <EditBatchDialog batch={b} allStudents={students} />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">

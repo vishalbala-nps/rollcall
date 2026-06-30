@@ -31,8 +31,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Trash2 } from "lucide-react"
-import { addCourse, deleteCourse } from "@/app/admin/actions"
+import { Plus, Pencil, Search, Trash2 } from "lucide-react"
+import { addCourse, deleteCourse, updateCourse } from "@/app/admin/actions"
 
 type Faculty = { id: number; firstName: string; lastName: string | null; email: string }
 type Batch = { id: number; name: string }
@@ -77,7 +77,7 @@ function FacultyPicker({
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name…"
+          placeholder="Search by name or email…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="pl-8"
@@ -143,6 +143,95 @@ function BatchPicker({
         </label>
       ))}
     </div>
+  )
+}
+
+function EditCourseDialog({
+  course,
+  faculty,
+  batches,
+}: {
+  course: Course
+  faculty: Faculty[]
+  batches: Batch[]
+}) {
+  const [open, setOpen] = useState(false)
+  const [selectedFaculty, setSelectedFaculty] = useState<Set<number>>(new Set())
+  const [selectedBatches, setSelectedBatches] = useState<Set<number>>(new Set())
+  const [state, action, pending] = useActionState(updateCourse, undefined)
+  const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (open) {
+      setSelectedFaculty(new Set(course.faculties.map((f) => f.id)))
+      setSelectedBatches(new Set(course.batches.map((b) => b.id)))
+    }
+  }, [open, course.faculties, course.batches])
+
+  useEffect(() => {
+    if (pending) { wasSubmitting.current = true; return }
+    if (wasSubmitting.current) {
+      wasSubmitting.current = false
+      if (!state?.error) setOpen(false)
+    }
+  }, [state, pending])
+
+  function toggleFaculty(id: number) {
+    setSelectedFaculty((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleBatch(id: number) {
+    setSelectedBatches((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Pencil className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Course</DialogTitle>
+        </DialogHeader>
+        <form action={action} className="flex flex-col gap-4">
+          <input type="hidden" name="id" value={String(course.id)} />
+          {Array.from(selectedFaculty).map((id) => (
+            <input key={id} type="hidden" name="facultyIds" value={String(id)} />
+          ))}
+          {Array.from(selectedBatches).map((id) => (
+            <input key={id} type="hidden" name="batchIds" value={String(id)} />
+          ))}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-course-name">Course name</Label>
+            <Input id="edit-course-name" name="name" defaultValue={course.name} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Faculty ({selectedFaculty.size} selected)</Label>
+            <FacultyPicker faculty={faculty} selected={selectedFaculty} onToggle={toggleFaculty} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Batches ({selectedBatches.size} selected)</Label>
+            <BatchPicker batches={batches} selected={selectedBatches} onToggle={toggleBatch} />
+          </div>
+          {state?.error && (
+            <p className="text-sm text-destructive">{state.error}</p>
+          )}
+          <Button type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save Changes"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -301,6 +390,8 @@ export function CoursesClient({
                   )}
                 </TableCell>
                 <TableCell>
+                  <div className="flex items-center gap-1">
+                  <EditCourseDialog course={c} faculty={faculty} batches={batches} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
@@ -329,6 +420,7 @@ export function CoursesClient({
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
