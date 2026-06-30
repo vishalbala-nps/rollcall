@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { type LucideIcon, GraduationCap, LogOut, ChevronsUpDown } from "lucide-react"
+import { type LucideIcon, GraduationCap, LogOut, ChevronsUpDown, Settings } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -34,9 +34,10 @@ type AppSidebarProps = {
   nav: NavItem[]
   email?: string | null
   onSignOut: () => Promise<void>
+  onSettings?: () => void
 }
 
-export function AppSidebar({ nav, email, onSignOut }: AppSidebarProps) {
+export function AppSidebar({ nav, email, onSignOut, onSettings }: AppSidebarProps) {
   const pathname = usePathname()
 
   const isActive = (item: NavItem) =>
@@ -89,10 +90,15 @@ export function AppSidebar({ nav, email, onSignOut }: AppSidebarProps) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
-            <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
-              {email}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
+            {onSettings && (
+              <>
+                <DropdownMenuItem onClick={onSettings}>
+                  <Settings className="size-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem asChild>
               <form action={onSignOut} className="w-full">
                 <button type="submit" className="flex w-full items-center gap-2 text-destructive">

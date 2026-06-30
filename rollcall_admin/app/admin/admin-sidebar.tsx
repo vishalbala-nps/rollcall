@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { LayoutDashboard, Users, DoorOpen, BookOpen, Radio, UsersRound } from "lucide-react"
 import { AppSidebar, type NavItem } from "@/components/app-sidebar"
 import { signOutAction } from "@/app/admin/actions"
+import { SettingsDialog } from "@/app/admin/settings-dialogs"
 
 const nav: NavItem[] = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
@@ -14,5 +16,17 @@ const nav: NavItem[] = [
 ]
 
 export function AdminSidebar({ email }: { email?: string | null }) {
-  return <AppSidebar nav={nav} email={email} onSignOut={signOutAction} />
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
+  return (
+    <>
+      <AppSidebar
+        nav={nav}
+        email={email}
+        onSignOut={signOutAction}
+        onSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
+  )
 }

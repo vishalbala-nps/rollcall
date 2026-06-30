@@ -280,6 +280,21 @@ export async function updateBatch(
   revalidatePath("/admin", "layout")
 }
 
+export async function changePassword(
+  _: unknown,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await auth()
+  const id = Number(session!.user.id)
+  const newPassword = formData.get("newPassword") as string
+  const confirmPassword = formData.get("confirmPassword") as string
+  if (!newPassword) return { error: "New password is required." }
+  if (newPassword !== confirmPassword) return { error: "Passwords do not match." }
+  const hashed = await bcrypt.hash(newPassword, 10)
+  await db.user.update({ where: { id }, data: { password: hashed } })
+  return { success: true }
+}
+
 export async function signOutAction() {
   await signOut({ redirectTo: "/" })
 }
