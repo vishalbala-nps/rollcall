@@ -63,12 +63,15 @@ export async function updateUser(
   const firstName = (formData.get("firstName") as string).trim()
   const lastName = (formData.get("lastName") as string).trim() || null
   const role = formData.get("role") as "Admin" | "Faculty" | "Student"
+  const newPassword = (formData.get("newPassword") as string | null)?.trim() || null
   if (!firstName) return { error: "First name is required." }
   if (!email) return { error: "Email is required." }
   const existing = await db.user.findUnique({ where: { email } })
   if (existing && existing.id !== id) return { error: "This email is already in use." }
+  const data: Record<string, unknown> = { email, firstName, lastName, role }
+  if (newPassword) data.password = await bcrypt.hash(newPassword, 10)
   try {
-    await db.user.updateMany({ where: { id, universityId }, data: { email, firstName, lastName, role } })
+    await db.user.updateMany({ where: { id, universityId }, data })
   } catch {
     return { error: "Failed to update user. Please try again." }
   }

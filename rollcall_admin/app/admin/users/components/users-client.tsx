@@ -32,7 +32,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { buttonVariants } from "@/components/ui/button"
-import { Trash2, Plus, Pencil } from "lucide-react"
+import { Trash2, Plus, Pencil, RefreshCw } from "lucide-react"
 import { addUser, deleteUser, updateUser } from "@/app/admin/actions"
 
 type User = {
@@ -49,6 +49,12 @@ const tabs = [
   { label: "Admins", role: "Admin" },
 ] as const
 
+function generatePassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%"
+  const bytes = new Uint8Array(12)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("")
+}
 
 function UserTable({
   users,
@@ -138,8 +144,13 @@ function UserTable({
 
 function EditUserDialog({ user }: { user: User }) {
   const [open, setOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
   const [state, action, pending] = useActionState(updateUser, undefined)
   const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (open) setNewPassword("")
+  }, [open])
 
   useEffect(() => {
     if (pending) { wasSubmitting.current = true; return }
@@ -177,6 +188,28 @@ function EditUserDialog({ user }: { user: User }) {
             <Label htmlFor="edit-email">Email</Label>
             <Input id="edit-email" name="email" type="email" defaultValue={user.email} required />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="edit-password">New password <span className="text-muted-foreground font-normal">(leave blank to keep current)</span></Label>
+            <input type="hidden" name="newPassword" value={newPassword} />
+            <div className="flex gap-2">
+              <Input
+                id="edit-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                className="font-mono"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setNewPassword(generatePassword())}
+                title="Generate password"
+              >
+                <RefreshCw className="size-4" />
+              </Button>
+            </div>
+          </div>
           {state?.error && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
@@ -191,8 +224,13 @@ function EditUserDialog({ user }: { user: User }) {
 
 function AddUserDialog({ role }: { role: string }) {
   const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState("")
   const [state, action, pending] = useActionState(addUser, undefined)
   const wasSubmitting = useRef(false)
+
+  useEffect(() => {
+    if (open) setPassword(generatePassword())
+  }, [open])
 
   useEffect(() => {
     if (pending) { wasSubmitting.current = true; return }
@@ -232,7 +270,26 @@ function AddUserDialog({ role }: { role: string }) {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" type="password" required />
+            <input type="hidden" name="password" value={password} />
+            <div className="flex gap-2">
+              <Input
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                className="font-mono"
+                required
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setPassword(generatePassword())}
+                title="Generate password"
+              >
+                <RefreshCw className="size-4" />
+              </Button>
+            </div>
           </div>
           {state?.error && (
             <p className="text-sm text-destructive">{state.error}</p>
